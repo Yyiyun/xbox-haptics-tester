@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Xbox Controller Haptics Tester</title>
+  <style>
+    body { font-family: sans-serif; padding: 20px; }
+    section { margin-bottom: 30px; }
+    label { display: block; margin: 10px 0; }
+    input[type=range] { width: 100%; }
+    button { padding: 8px 16px; }
+  </style>
+</head>
+<body>
+  <h1>Xbox Series Controller Haptics Tester</h1>
+
+  <!-- 握把振动测试区 -->
+  <section>
+    <h2>Grip Vibration (dual‑rumble)</h2>
+    <label>
+      Intensity: <input type="range" id="gripIntensity" min="0" max="1" step="0.01" value="0.5">
+    </label>
+    <button id="gripTest">Test Grip Vibration</button>
+  </section>
+
+  <!-- 扳机振动测试区 -->
+  <section>
+    <h2>Trigger Vibration (trigger‑rumble)</h2>
+    <label>
+      Intensity: <input type="range" id="triggerIntensity" min="0" max="1" step="0.01" value="0.5">
+    </label>
+    <button id="triggerTest">Test Trigger Vibration</button>
+  </section>
+
+  <script src="haptics-tester.js"></script>
+</body>
+</html>
