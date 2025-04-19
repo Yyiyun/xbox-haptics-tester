@@ -3,34 +3,39 @@
 <head>
   <meta charset="UTF-8">
   <title>Xbox Controller Haptics Tester</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    body { font-family: sans-serif; padding: 20px; }
+    body { font-family: sans-serif; padding: 20px; max-width: 600px; margin: auto; }
     section { margin-bottom: 30px; }
     label { display: block; margin: 10px 0; }
     input[type=range] { width: 100%; }
-    button { padding: 8px 16px; }
+    button { padding: 8px 16px; cursor: pointer; }
+    #status { margin-top: 20px; color: #c00; }
   </style>
 </head>
 <body>
-  <h1>Xbox Series Controller Haptics Tester</h1>
+  <h1>🎮 Xbox Series Controller Haptics Tester</h1>
+  <p>请通过 HTTPS 或在 <code>localhost</code> 打开此页面，并先按下任意按钮以激活手柄。</p>
 
   <!-- 握把振动测试区 -->
   <section>
     <h2>Grip Vibration (dual‑rumble)</h2>
     <label>
-      Intensity: <input type="range" id="gripIntensity" min="0" max="1" step="0.01" value="0.5">
+      强度: <input type="range" id="gripIntensity" min="0" max="1" step="0.01" value="0.5">
     </label>
-    <button id="gripTest">Test Grip Vibration</button>
+    <button id="gripTest">测试握把振动</button>
   </section>
 
   <!-- 扳机振动测试区 -->
   <section>
     <h2>Trigger Vibration (trigger‑rumble)</h2>
     <label>
-      Intensity: <input type="range" id="triggerIntensity" min="0" max="1" step="0.01" value="0.5">
+      强度: <input type="range" id="triggerIntensity" min="0" max="1" step="0.01" value="0.5">
     </label>
-    <button id="triggerTest">Test Trigger Vibration</button>
+    <button id="triggerTest">测试扳机振动</button>
   </section>
+
+  <div id="status"></div>
 
   <script src="haptics-tester.js"></script>
 </body>
