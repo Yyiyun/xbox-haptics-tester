@@ -1,42 +1,100 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
-  <title>Xbox Controller Haptics Tester</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>XInput 手柄震动测试</title>
   <style>
-    body { font-family: sans-serif; padding: 20px; max-width: 600px; margin: auto; }
-    section { margin-bottom: 30px; }
-    label { display: block; margin: 10px 0; }
-    input[type=range] { width: 100%; }
-    button { padding: 8px 16px; cursor: pointer; }
-    #status { margin-top: 20px; color: #c00; }
+    body { font-family: sans-serif; padding: 20px; }
+    h1, h2 { margin-top: 20px; }
+    .slider-container { margin: 15px 0; }
+    label { display: block; margin-bottom: 5px; }
+    #stopBtn { margin-top: 10px; padding: 8px 16px; }
+    #gamepadInfo p { margin: 4px 0; }
   </style>
 </head>
 <body>
-  <h1>🎮 Xbox Series Controller Haptics Tester</h1>
-  <p>请通过 HTTPS 或在 <code>localhost</code> 打开此页面，并先按下任意按钮以激活手柄。</p>
+  <h1>XInput 手柄震动测试</h1>
+  <div id="status">等待手柄连接...</div>
 
-  <!-- 握把振动测试区 -->
-  <section>
-    <h2>Grip Vibration (dual‑rumble)</h2>
-    <label>
-      强度: <input type="range" id="gripIntensity" min="0" max="1" step="0.01" value="0.5">
-    </label>
-    <button id="gripTest">测试握把振动</button>
-  </section>
+  <div class="slider-container">
+    <label for="leftSlider">左侧震动 (低频): <span id="leftValue">0</span>%</label>
+    <input type="range" id="leftSlider" min="0" max="100" value="0">
+  </div>
+  <div class="slider-container">
+    <label for="rightSlider">右侧震动 (高频): <span id="rightValue">0</span>%</label>
+    <input type="range" id="rightSlider" min="0" max="100" value="0">
+  </div>
+  <button id="stopBtn">停止震动</button>
 
-  <!-- 扳机振动测试区 -->
-  <section>
-    <h2>Trigger Vibration (trigger‑rumble)</h2>
-    <label>
-      强度: <input type="range" id="triggerIntensity" min="0" max="1" step="0.01" value="0.5">
-    </label>
-    <button id="triggerTest">测试扳机振动</button>
-  </section>
+  <h2>手柄状态</h2>
+  <div id="gamepadInfo">--</div>
 
-  <div id="status"></div>
+  <script>
+    let gpIndex = null;
 
-  <script src="haptics-tester.js"></script>
+    window.addEventListener('gamepadconnected', (e) => {
+      gpIndex = e.gamepad.index;
+      document.getElementById('status').textContent = `已连接: ${e.gamepad.id}`;
+    });
+
+    window.addEventListener('gamepaddisconnected', (e) => {
+      if (gpIndex === e.gamepad.index) {
+        gpIndex = null;
+        document.getElementById('status').textContent = '手柄已断开';
+      }
+    });
+
+    function sendVibration(weak, strong) {
+      if (gpIndex === null) return;
+      let gp = navigator.getGamepads()[gpIndex];
+      if (gp && gp.vibrationActuator && gp.vibrationActuator.type === 'dual-rumble') {
+        gp.vibrationActuator.playEffect('dual-rumble', {
+          duration: 1000,
+          weakMagnitude: weak,
+          strongMagnitude: strong
+        });
+      }
+    }
+
+    document.getElementById('leftSlider').addEventListener('input', (e) => {
+      let val = e.target.value;
+      document.getElementById('leftValue').textContent = val;
+      let leftMag = val / 100;
+      let rightMag = document.getElementById('rightSlider').value / 100;
+      sendVibration(leftMag, rightMag);
+    });
+
+    document.getElementById('rightSlider').addEventListener('input', (e) => {
+      let val = e.target.value;
+      document.getElementById('rightValue').textContent = val;
+      let leftMag = document.getElementById('leftSlider').value / 100;
+      let rightMag = val / 100;
+      sendVibration(leftMag, rightMag);
+    });
+
+    document.getElementById('stopBtn').addEventListener('click', () => {
+      document.getElementById('leftSlider').value = 0;
+      document.getElementById('rightSlider').value = 0;
+      document.getElementById('leftValue').textContent = '0';
+      document.getElementById('rightValue').textContent = '0';
+      sendVibration(0, 0);
+    });
+
+    function updateStatus() {
+      if (gpIndex !== null) {
+        let gp = navigator.getGamepads()[gpIndex];
+        if (gp) {
+          let infoEl = document.getElementById('gamepadInfo');
+          let html = `<p>ID: ${gp.id}</p>`;
+          html += `<p>Axes: ${gp.axes.map(a => a.toFixed(2)).join(', ')}</p>`;
+          html += `<p>Buttons Pressed: ${gp.buttons.map((b, i) => b.pressed ? i : null).filter(i => i !== null).join(', ') || '无'}</p>`;
+          infoEl.innerHTML = html;
+        }
+      }
+      requestAnimationFrame(updateStatus);
+    }
+    requestAnimationFrame(updateStatus);
+  </script>
 </body>
 </html>
