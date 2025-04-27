@@ -18,12 +18,12 @@
   <div id="status">等待手柄连接...</div>
 
   <div class="slider-container">
-    <label for="leftSlider">左侧震动 (低频): <span id="leftValue">0</span>%</label>
-    <input type="range" id="leftSlider" min="0" max="100" value="0">
+    <label for="leftSlider">左侧震动 (低频): <span id="leftValue">0</span></label>
+    <input type="range" id="leftSlider" min="0" max="65535" step="1" value="0">
   </div>
   <div class="slider-container">
-    <label for="rightSlider">右侧震动 (高频): <span id="rightValue">0</span>%</label>
-    <input type="range" id="rightSlider" min="0" max="100" value="0">
+    <label for="rightSlider">右侧震动 (高频): <span id="rightValue">0</span></label>
+    <input type="range" id="rightSlider" min="0" max="65535" step="1" value="0">
   </div>
   <button id="stopBtn">停止震动</button>
 
@@ -47,7 +47,7 @@
 
     function sendVibration(weak, strong) {
       if (gpIndex === null) return;
-      let gp = navigator.getGamepads()[gpIndex];
+      const gp = navigator.getGamepads()[gpIndex];
       if (gp && gp.vibrationActuator && gp.vibrationActuator.type === 'dual-rumble') {
         gp.vibrationActuator.playEffect('dual-rumble', {
           duration: 1000,
@@ -58,18 +58,18 @@
     }
 
     document.getElementById('leftSlider').addEventListener('input', (e) => {
-      let val = e.target.value;
+      const val = Number(e.target.value);
       document.getElementById('leftValue').textContent = val;
-      let leftMag = val / 100;
-      let rightMag = document.getElementById('rightSlider').value / 100;
+      const leftMag  = val / 65535;
+      const rightMag = Number(document.getElementById('rightSlider').value) / 65535;
       sendVibration(leftMag, rightMag);
     });
 
     document.getElementById('rightSlider').addEventListener('input', (e) => {
-      let val = e.target.value;
+      const val = Number(e.target.value);
       document.getElementById('rightValue').textContent = val;
-      let leftMag = document.getElementById('leftSlider').value / 100;
-      let rightMag = val / 100;
+      const leftMag  = Number(document.getElementById('leftSlider').value) / 65535;
+      const rightMag = val / 65535;
       sendVibration(leftMag, rightMag);
     });
 
@@ -83,9 +83,9 @@
 
     function updateStatus() {
       if (gpIndex !== null) {
-        let gp = navigator.getGamepads()[gpIndex];
+        const gp = navigator.getGamepads()[gpIndex];
         if (gp) {
-          let infoEl = document.getElementById('gamepadInfo');
+          const infoEl = document.getElementById('gamepadInfo');
           let html = `<p>ID: ${gp.id}</p>`;
           html += `<p>Axes: ${gp.axes.map(a => a.toFixed(2)).join(', ')}</p>`;
           html += `<p>Buttons Pressed: ${gp.buttons.map((b, i) => b.pressed ? i : null).filter(i => i !== null).join(', ') || '无'}</p>`;
