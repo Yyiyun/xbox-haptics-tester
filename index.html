@@ -7,7 +7,15 @@
   <style>
     body { font-family: sans-serif; padding: 20px; }
     h1, h2 { margin-top: 20px; }
-    .slider-container { margin: 15px 0; }
+    .slider-container {
+      margin: 15px 0;
+      /* 可选：限制父容器最大宽度 */
+      /* max-width: 800px; */
+    }
+    /* 让滑动条横向拉满父容器 */
+    .slider-container input[type="range"] {
+      width: 100%;
+    }
     label { display: block; margin-bottom: 5px; }
     button { margin-right: 10px; padding: 8px 16px; }
     #gamepadInfo p { margin: 4px 0; }
@@ -18,11 +26,11 @@
   <div id="status">等待手柄连接...</div>
 
   <div class="slider-container">
-    <label for="leftSlider">左侧震动 (弱振动): <span id="leftValue">0</span></label>
+    <label for="leftSlider">左侧震动 (弱振动)：<span id="leftValue">0</span></label>
     <input type="range" id="leftSlider" min="0" max="65535" step="1" value="0">
   </div>
   <div class="slider-container">
-    <label for="rightSlider">右侧震动 (强振动): <span id="rightValue">0</span></label>
+    <label for="rightSlider">右侧震动 (强振动)：<span id="rightValue">0</span></label>
     <input type="range" id="rightSlider" min="0" max="65535" step="1" value="0">
   </div>
 
@@ -77,7 +85,6 @@
         if (!vibrating) return;
         const left = Number(document.getElementById('leftSlider').value) / 65535;
         const right = Number(document.getElementById('rightSlider').value) / 65535;
-        // 这里用 100ms 短震动保持持续效果
         sendVibration(left, right, 100);
         vibrationTimer = setTimeout(loop, 100);
       }
@@ -87,23 +94,18 @@
     function stopContinuous() {
       vibrating = false;
       clearTimeout(vibrationTimer);
-      // 停止时立即发送零震动
       sendVibration(0, 0, 0);
     }
 
-    document.getElementById('startBtn').addEventListener('click', () => {
-      startContinuous();
-    });
+    document.getElementById('startBtn').addEventListener('click', startContinuous);
     document.getElementById('stopBtn').addEventListener('click', () => {
       stopContinuous();
-      // 同步重置滑块和显示
       document.getElementById('leftSlider').value = 0;
       document.getElementById('rightSlider').value = 0;
       document.getElementById('leftValue').textContent = '0';
       document.getElementById('rightValue').textContent = '0';
     });
 
-    // 滑块实时更新显示数值，但不直接触发一次性震动
     document.getElementById('leftSlider').addEventListener('input', e => {
       document.getElementById('leftValue').textContent = e.target.value;
     });
@@ -111,7 +113,6 @@
       document.getElementById('rightValue').textContent = e.target.value;
     });
 
-    // 状态面板更新
     function updateStatus() {
       const infoEl = document.getElementById('gamepadInfo');
       if (gpIndex === null) {
@@ -127,7 +128,6 @@
             .join(', ') || '无'}</p>`;
           infoEl.innerHTML = html;
         } else {
-          // 防止断开后一直报错
           gpIndex = null;
           stopContinuous();
           document.getElementById('status').textContent = '手柄已断开';
