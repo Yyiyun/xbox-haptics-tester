@@ -9,7 +9,7 @@
     h1, h2 { margin-top: 20px; }
     .slider-container { margin: 15px 0; }
     label { display: block; margin-bottom: 5px; }
-    #stopBtn { margin-top: 10px; padding: 8px 16px; }
+    button { margin-right: 10px; padding: 8px 16px; }
     #gamepadInfo p { margin: 4px 0; }
   </style>
 </head>
@@ -18,13 +18,15 @@
   <div id="status">等待手柄连接...</div>
 
   <div class="slider-container">
-    <label for="leftSlider">左侧震动 (低频): <span id="leftValue">0</span></label>
+    <label for="leftSlider">左侧震动 (弱振动): <span id="leftValue">0</span></label>
     <input type="range" id="leftSlider" min="0" max="65535" step="1" value="0">
   </div>
   <div class="slider-container">
-    <label for="rightSlider">右侧震动 (高频): <span id="rightValue">0</span></label>
+    <label for="rightSlider">右侧震动 (强振动): <span id="rightValue">0</span></label>
     <input type="range" id="rightSlider" min="0" max="65535" step="1" value="0">
   </div>
+
+  <button id="startBtn">开始持续震动</button>
   <button id="stopBtn">停止震动</button>
 
   <h2>手柄状态</h2>
@@ -32,64 +34,104 @@
 
   <script>
     let gpIndex = null;
+    let vibrating = false;
+    let vibrationTimer = null;
 
-    window.addEventListener('gamepadconnected', (e) => {
+    window.addEventListener('gamepadconnected', e => {
       gpIndex = e.gamepad.index;
       document.getElementById('status').textContent = `已连接: ${e.gamepad.id}`;
     });
 
-    window.addEventListener('gamepaddisconnected', (e) => {
+    window.addEventListener('gamepaddisconnected', e => {
       if (gpIndex === e.gamepad.index) {
         gpIndex = null;
+        stopContinuous();
         document.getElementById('status').textContent = '手柄已断开';
       }
     });
 
-    function sendVibration(weak, strong) {
-      if (gpIndex === null) return;
+    function getActuator() {
       const gp = navigator.getGamepads()[gpIndex];
-      if (gp && gp.vibrationActuator && gp.vibrationActuator.type === 'dual-rumble') {
-        gp.vibrationActuator.playEffect('dual-rumble', {
-          duration: 1000,
+      if (!gp) return null;
+      return gp.vibrationActuator
+          || (gp.hapticActuators && gp.hapticActuators[0])
+          || null;
+    }
+
+    function sendVibration(weak, strong, duration = 100) {
+      if (gpIndex === null) return;
+      const actuator = getActuator();
+      if (actuator && actuator.type === 'dual-rumble') {
+        actuator.playEffect('dual-rumble', {
+          duration,
           weakMagnitude: weak,
           strongMagnitude: strong
         });
       }
     }
 
-    document.getElementById('leftSlider').addEventListener('input', (e) => {
-      const val = Number(e.target.value);
-      document.getElementById('leftValue').textContent = val;
-      const leftMag  = val / 65535;
-      const rightMag = Number(document.getElementById('rightSlider').value) / 65535;
-      sendVibration(leftMag, rightMag);
-    });
+    function startContinuous() {
+      if (vibrating || gpIndex === null) return;
+      vibrating = true;
+      function loop() {
+        if (!vibrating) return;
+        const left = Number(document.getElementById('leftSlider').value) / 65535;
+        const right = Number(document.getElementById('rightSlider').value) / 65535;
+        // 这里用 100ms 短震动保持持续效果
+        sendVibration(left, right, 100);
+        vibrationTimer = setTimeout(loop, 100);
+      }
+      loop();
+    }
 
-    document.getElementById('rightSlider').addEventListener('input', (e) => {
-      const val = Number(e.target.value);
-      document.getElementById('rightValue').textContent = val;
-      const leftMag  = Number(document.getElementById('leftSlider').value) / 65535;
-      const rightMag = val / 65535;
-      sendVibration(leftMag, rightMag);
-    });
+    function stopContinuous() {
+      vibrating = false;
+      clearTimeout(vibrationTimer);
+      // 停止时立即发送零震动
+      sendVibration(0, 0, 0);
+    }
 
+    document.getElementById('startBtn').addEventListener('click', () => {
+      startContinuous();
+    });
     document.getElementById('stopBtn').addEventListener('click', () => {
+      stopContinuous();
+      // 同步重置滑块和显示
       document.getElementById('leftSlider').value = 0;
       document.getElementById('rightSlider').value = 0;
       document.getElementById('leftValue').textContent = '0';
       document.getElementById('rightValue').textContent = '0';
-      sendVibration(0, 0);
     });
 
+    // 滑块实时更新显示数值，但不直接触发一次性震动
+    document.getElementById('leftSlider').addEventListener('input', e => {
+      document.getElementById('leftValue').textContent = e.target.value;
+    });
+    document.getElementById('rightSlider').addEventListener('input', e => {
+      document.getElementById('rightValue').textContent = e.target.value;
+    });
+
+    // 状态面板更新
     function updateStatus() {
-      if (gpIndex !== null) {
+      const infoEl = document.getElementById('gamepadInfo');
+      if (gpIndex === null) {
+        infoEl.innerHTML = '--';
+      } else {
         const gp = navigator.getGamepads()[gpIndex];
         if (gp) {
-          const infoEl = document.getElementById('gamepadInfo');
           let html = `<p>ID: ${gp.id}</p>`;
           html += `<p>Axes: ${gp.axes.map(a => a.toFixed(2)).join(', ')}</p>`;
-          html += `<p>Buttons Pressed: ${gp.buttons.map((b, i) => b.pressed ? i : null).filter(i => i !== null).join(', ') || '无'}</p>`;
+          html += `<p>Buttons: ${gp.buttons
+            .map((b, i) => b.pressed ? i : null)
+            .filter(i => i !== null)
+            .join(', ') || '无'}</p>`;
           infoEl.innerHTML = html;
+        } else {
+          // 防止断开后一直报错
+          gpIndex = null;
+          stopContinuous();
+          document.getElementById('status').textContent = '手柄已断开';
+          infoEl.innerHTML = '--';
         }
       }
       requestAnimationFrame(updateStatus);
